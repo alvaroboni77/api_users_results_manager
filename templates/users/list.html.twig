@@ -1,0 +1,16 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <h2>Lista completa de usuarios ({{ users | length }})</h2>
+
+    <ul>
+        {% for user in users %}
+            <li>
+{#                <a href="{{ path('deporte_get', {id: deporte.id}) }}">#}
+                    {{ user y}}
+{#                </a>#}
+            </li>
+        {% endfor %}
+    </ul>
+
+{% endblock %}
