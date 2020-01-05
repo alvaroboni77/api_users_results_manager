@@ -344,6 +344,95 @@ class ApiUsersController extends AbstractController
             );
         }
 
+        if (!isset($postData['email'], $postData['password'], $postData['roles'])) {
+            // 422 - Unprocessable Entity Faltan datos
+            $message = new Message(Response::HTTP_UNPROCESSABLE_ENTITY, Response::$statusTexts[422]);
+            return Utils::apiResponse(
+                $message->getCode(),
+                [ 'message' => $message ],
+                $format
+            );
+        }
+
+        $user_exist = $this->entityManager
+            ->getRepository(User::class)
+            ->findOneBy([ 'email' => $postData['email'] ]);
+
+        if (null !== $user_exist) {    // 400 - Bad Request
+            $message = new Message(Response::HTTP_BAD_REQUEST, Response::$statusTexts[400]);
+            return Utils::apiResponse(
+                $message->getCode(),
+                [ 'message' => $message ],
+                $format
+            );
+        }
+        $user->setEmail($postData['email']);
+
+        // password
+        $user->setPassword($postData['password']);
+
+        // roles
+        $user->setRoles($postData['roles']);
+
+        $this->entityManager->flush();
+
+        return Utils::apiResponse(
+            209,                        // 209 - Content Returned
+            [ 'user' => $user ],
+            $format
+        );
+    }
+
+    /**
+     * Summary: Updates partially a user
+     * Notes: Updates partially the user identified by &#x60;userId&#x60;.
+     *
+     * @param   Request $request request
+     * @param   int $userId User id
+     * @return  Response
+     * @Route(
+     *     "/{userId}.{_format}",
+     *     defaults={"_format": null},
+     *     requirements={
+     *          "userId": "\d+",
+     *         "_format": "json|xml"
+     *     },
+     *     methods={ Request::METHOD_PATCH },
+     *     name="patch"
+     * )
+     *
+     * @Security(
+     *     expression="is_granted('IS_AUTHENTICATED_FULLY')",
+     *     statusCode=401,
+     *     message="Invalid credentials."
+     * )
+     */
+    public function patchAction(Request $request, int $userId): Response
+    {
+        if (($this->getUser()->getId() !== $userId)
+            && !$this->isGranted('ROLE_ADMIN')) {
+            throw new HttpException(   // 403
+                Response::HTTP_FORBIDDEN,
+                "`Forbidden`: you don't have permission to access"
+            );
+        }
+        $body = $request->getContent();
+        $postData = json_decode($body, true);
+        $format = Utils::getFormat($request);
+
+        $user = $this->entityManager
+            ->getRepository(User::class)
+            ->findOneBy([ 'id' => $userId ]);
+
+        if (null === $user) {    // 404 - Not Found
+            $message = new Message(Response::HTTP_NOT_FOUND, Response::$statusTexts[404]);
+            return Utils::apiResponse(
+                $message->getCode(),
+                [ 'message' => $message ],
+                $format
+            );
+        }
+
         if (isset($postData['email'])) {
             $user_exist = $this->entityManager
                 ->getRepository(User::class)

@@ -272,7 +272,7 @@ class ApiResultsController  extends AbstractController
             ->findOneBy([ 'id' => $postData['user_id'] ]);
 
         if (null === $user) {    // 400 - Bad Request
-            $message = new Message(Response::HTTP_BAD_REQUEST, Response::$statusTexts[400]);
+            $message = new Message(Response::HTTP_BAD_REQUEST, Response::$statusTexts[400] . ': user does not exist');
             return Utils::apiResponse(
                 $message->getCode(),
                 [ 'message' => $message ],
@@ -344,6 +344,103 @@ class ApiResultsController  extends AbstractController
         }
 
         // Puede editar otro resultado diferente sólo si tiene ROLE_ADMIN
+        if (($this->getUser()->getId() !== $result->getUser()->getId())
+            && !$this->isGranted('ROLE_ADMIN')) {
+            throw new HttpException(   // 403
+                Response::HTTP_FORBIDDEN,
+                "`Forbidden`: you don't have permission to access"
+            );
+        }
+
+        if (!isset($postData['result'], $postData['user_id'])) {
+            // 422 - Unprocessable Entity Faltan datos
+            $message = new Message(Response::HTTP_UNPROCESSABLE_ENTITY, Response::$statusTexts[422]);
+            return Utils::apiResponse(
+                $message->getCode(),
+                [ 'message' => $message ],
+                $format
+            );
+        }
+
+        // user_id
+        /** @var User $user */
+        $user = $this->entityManager
+            ->getRepository(User::class)
+            ->findOneBy([ 'id' => $postData['user_id'] ]);
+
+        if (null == $user) {    // 400 - Bad Request
+            $message = new Message(Response::HTTP_BAD_REQUEST, Response::$statusTexts[400]);
+            return Utils::apiResponse(
+                $message->getCode(),
+                [ 'message' => $message ],
+                $format
+            );
+        }
+        $result->setUser($user);
+
+
+        // result
+        $result->setResult($postData['result']);
+
+        //time
+        $timestamp = new DateTime('now');
+        $result->setTime($timestamp);
+
+        $this->entityManager->flush();
+
+        return Utils::apiResponse(
+            209,                        // 209 - Content Returned
+            [ 'result' => $result ],
+            $format
+        );
+    }
+
+    /**
+     * Summary: Applies partial modifications to a result
+     * Notes: Updates the result identified by &#x60;resultId&#x60;.
+     *
+     * @param Request $request request
+     * @param int $resultId Result id
+     * @return  Response
+     * @Route(
+     *     "/{resultId}.{_format}",
+     *     defaults={"_format": null},
+     *     requirements={
+     *          "resultId": "\d+",
+     *         "_format": "json|xml"
+     *     },
+     *     methods={ Request::METHOD_PATCH },
+     *     name="patch"
+     * )
+     *
+     * @Security(
+     *     expression="is_granted('IS_AUTHENTICATED_FULLY')",
+     *     statusCode=401,
+     *     message="Invalid credentials."
+     * )
+     * @throws Exception
+     */
+    public function patchAction(Request $request, int $resultId): Response
+    {
+        $body = $request->getContent();
+        $postData = json_decode($body, true);
+        $format = Utils::getFormat($request);
+
+
+        /** @var Result $result */
+        $result = $this->entityManager
+            ->getRepository(Result::class)
+            ->findOneBy([ 'id' => $resultId ]);
+
+        if (null === $result) {    // 404 - Not Found
+            $message = new Message(Response::HTTP_NOT_FOUND, Response::$statusTexts[404]);
+            return Utils::apiResponse(
+                $message->getCode(),
+                [ 'message' => $message ],
+                $format
+            );
+        }
+
         if (($this->getUser()->getId() !== $result->getUser()->getId())
             && !$this->isGranted('ROLE_ADMIN')) {
             throw new HttpException(   // 403

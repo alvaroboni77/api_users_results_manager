@@ -208,6 +208,54 @@ paths:
           $ref: '#/components/responses/403_Forbidden_Response'
         '404':
           $ref: '#/components/responses/404_Resource_Not_Found_Response'
+        '422':
+          description: '`Unprocessable entity`: e-mail, password or roles is left out'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                code: 422
+                message: 'Unprocessable entity: e-mail, password or roles is left out'
+      security:
+        - MiWApiSecurity: []
+    patch:
+      tags:
+        - Users
+      summary: 'Updates partially a user'
+      description: 'Updates partially the user identified by `userId`.'
+      operationId: api_users_patch
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      requestBody:
+        description: '`User` data to update'
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserData'
+      responses:
+        '209':
+          description: '`Content Returned`: user previously existed and is now updated'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: '`Bad Request`: e-mail already exists'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                code: 400
+                message: 'Bad Request: e-mail already exists'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
       security:
         - MiWApiSecurity: []
     delete:
@@ -290,14 +338,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Result'
         '400':
-          description: '`Bad Request`: user does not exist'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Message'
-              example:
-                code: 400
-                message: 'Bad Request: user does not exists'
+          $ref: '#/components/responses/400_Bad_Request'
         '401':
           $ref: '#/components/responses/401_Unauthorized_Response'
         '403':
@@ -374,14 +415,48 @@ paths:
               schema:
                 $ref: '#/components/schemas/Result'
         '400':
-          description: '`Bad Request`: user does not exist'
+          $ref: '#/components/responses/400_Bad_Request'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
+        '422':
+          description: '`Unprocessable entity`: result or user_id is left out'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
               example:
-                code: 400
-                message: 'Bad Request: user does not exist'
+                code: 422
+                message: 'Unprocessable entity: result or user_id is left out'
+      security:
+        - MiWApiSecurity: []
+    patch:
+      tags:
+        - Results
+      summary: 'Updates partially a result'
+      description: 'Updates partially the result identified by `resultId`.'
+      operationId: api_results_patch
+      parameters:
+        - $ref: '#/components/parameters/resultId'
+      requestBody:
+        description: '`Result` data to update'
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResultData'
+      responses:
+        '209':
+          description: '`Content Returned`: result previously existed and is now updated'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+        '400':
+          $ref: '#/components/responses/400_Bad_Request'
         '401':
           $ref: '#/components/responses/401_Unauthorized_Response'
         '403':
@@ -448,6 +523,7 @@ components:
       required:
         - id
         - email
+        - roles
       properties:
         id:
           description: 'User Id'
@@ -472,7 +548,6 @@ components:
         - id
         - result
         - user_id
-        - time
       properties:
         id:
           description: 'Result Id'
@@ -549,6 +624,15 @@ components:
         code: 200
         message: Ok
   responses:
+    400_Bad_Request:
+      description: '`Bad Request`: user does not exist'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          example:
+            code: 401
+            message: '`Bad Request`: user does not exist'
     401_Unauthorized_Response:
       description: '`Unauthorized`: invalid `Authorization` header'
       content:
