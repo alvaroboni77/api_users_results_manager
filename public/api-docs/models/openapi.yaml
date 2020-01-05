@@ -117,7 +117,7 @@ paths:
                 $ref: '#/components/schemas/Message'
               example:
                 code: 400
-                message: '`Bad Request`: e-mail already exists'
+                message: 'Bad Request: e-mail already exists'
         '401':
           $ref: '#/components/responses/401_Unauthorized_Response'
         '403':
@@ -130,7 +130,7 @@ paths:
                 $ref: '#/components/schemas/Message'
               example:
                 code: 422
-                message: '`Unprocessable entity`: e-mail or password is left out'
+                message: 'Unprocessable entity: e-mail or password is left out'
       security:
         - MiWApiSecurity: []
     options:
@@ -201,7 +201,7 @@ paths:
                 $ref: '#/components/schemas/Message'
               example:
                 code: 400
-                message: '`Bad Request`: e-mail already exists'
+                message: 'Bad Request: e-mail already exists'
         '401':
           $ref: '#/components/responses/401_Unauthorized_Response'
         '403':
@@ -269,6 +269,50 @@ paths:
           $ref: '#/components/responses/404_Resource_Not_Found_Response'
       security:
         - MiWApiSecurity: []
+    post:
+      tags:
+        - Results
+      summary: Creates a new result
+      description: 'Creates a new result'
+      operationId: api_results_post
+      requestBody:
+        description: '`Result` properties to add to the system'
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResultData'
+      responses:
+        '201':
+          description: '`Created`: result created'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+        '400':
+          description: '`Bad Request`: user does not exist'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                code: 400
+                message: 'Bad Request: user does not exists'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_Response'
+        '422':
+          description: '`Unprocessable entity`: result or user_id is left out'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                code: 422
+                message: 'Unprocessable entity: result or user_id is left out'
+      security:
+        - MiWApiSecurity: []
     options:
       tags:
         - Results
@@ -299,6 +343,45 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Result'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
+      security:
+        - MiWApiSecurity: []
+    put:
+      tags:
+        - Results
+      summary: 'Updates a result'
+      description: 'Updates the result identified by `resultId`.'
+      operationId: api_results_put
+      parameters:
+        - $ref: '#/components/parameters/resultId'
+      requestBody:
+        description: '`Result` data to update'
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResultData'
+      responses:
+        '209':
+          description: '`Content Returned`: result previously existed and is now updated'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+        '400':
+          description: '`Bad Request`: user does not exist'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                code: 400
+                message: 'Bad Request: user does not exist'
         '401':
           $ref: '#/components/responses/401_Unauthorized_Response'
         '403':
@@ -400,9 +483,8 @@ components:
           type: integer
           format: int64
         user_id:
-          description: 'User Id'
-          type: integer
-          format: int64
+          description: 'User'
+          $ref: '#/components/schemas/User'
         time:
           description: 'Date created'
           type: string
@@ -412,7 +494,10 @@ components:
         result:
           id: 123
           result: 12324
-          user_id: 9
+          user:
+            id: 1
+            email: "example@example.com"
+            roles: [ 'ROLE_USER' ]
           time: "2021-07-21 17:32:28"
     UserData:
       properties:
@@ -433,6 +518,20 @@ components:
         email: User_email@example.com
         password: User_password
         roles: [ 'ROLE_USER' ]
+    ResultData:
+      properties:
+        result:
+          description: 'Result'
+          type: integer
+          format: int64
+        user_id:
+          description: 'User id'
+          type: integer
+          format: int64
+      type: object
+      example:
+        result: 12
+        user_id: 3
     Message:
       required:
         - code
@@ -506,3 +605,6 @@ tags:
   -
     name: Users
     description: 'User management'
+  -
+    name: Results
+    description: 'Result management'

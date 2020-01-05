@@ -2,7 +2,9 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
+use App\Entity\User;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\ResultRepository")
@@ -22,14 +24,39 @@ class Result
     private $result;
 
     /**
-     * @ORM\Column(type="integer")
+     * @ORM\ManyToOne(targetEntity="User")
+     * @ORM\JoinColumns({
+     *     @ORM\JoinColumn(
+     *          name                 = "user_id",
+     *          referencedColumnName = "id",
+     *          onDelete             = "cascade"
+     *     )
+     * })
      */
-    private $user_id;
+    private $user;
 
     /**
      * @ORM\Column(type="datetime")
      */
     private $time;
+
+    /**
+     * Result constructor.
+     *
+     * @param int       $result result
+     * @param User      $user   user
+     * @param DateTime $time   time
+     */
+    public function __construct(
+        int $result = 0,
+        User $user = null,
+        DateTime $time = null
+    ) {
+        $this->id     = 0;
+        $this->result = $result;
+        $this->user   = $user;
+        $this->time   = $time;
+    }
 
     public function getId(): ?int
     {
@@ -48,15 +75,14 @@ class Result
         return $this;
     }
 
-    public function getUserId(): ?int
+    public function getUser(): User
     {
-        return $this->user_id;
+        return $this->user;
     }
 
-    public function setUserId(int $user_id): self
+    public function setUser(User $user): self
     {
-        $this->user_id = $user_id;
-
+        $this->user = $user;
         return $this;
     }
 

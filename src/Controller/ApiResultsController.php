@@ -6,7 +6,10 @@ namespace App\Controller;
 
 use App\Entity\Message;
 use App\Entity\Result;
+use App\Entity\User;
+use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
+use Exception;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -187,7 +190,7 @@ class ApiResultsController  extends AbstractController
      */
     public function deleteAction(Request $request, int $resultId): Response
     {
-        // Puede crear un usuario sólo si tiene ROLE_ADMIN
+        // Puede borrar un resultado sólo si tiene ROLE_ADMIN
         if (!$this->isGranted('ROLE_ADMIN')) {
             throw new HttpException(   // 403
                 Response::HTTP_FORBIDDEN,
@@ -214,5 +217,174 @@ class ApiResultsController  extends AbstractController
         $this->entityManager->flush();
 
         return new Response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * POST action
+     *
+     * @param Request $request request
+     * @return Response
+     * @Route(
+     *     ".{_format}",
+     *     defaults={"_format": null},
+     *     requirements={
+     *         "_format": "json|xml"
+     *     },
+     *     methods={ Request::METHOD_POST },
+     *     name="post"
+     * )
+     *
+     * @Security(
+     *     expression="is_granted('IS_AUTHENTICATED_FULLY')",
+     *     statusCode=401,
+     *     message="Invalid credentials."
+     * )
+     * @throws Exception
+     */
+    public function postAction(Request $request): Response
+    {
+        // Puede crear un resultado sólo si tiene ROLE_ADMIN
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            throw new HttpException(   // 403
+                Response::HTTP_FORBIDDEN,
+                "`Forbidden`: you don't have permission to access"
+            );
+        }
+        $body = $request->getContent();
+        $postData = json_decode($body, true);
+        $format = Utils::getFormat($request);
+        $timestamp = new DateTime('now');
+
+        if (!isset($postData['result'], $postData['user_id'])) {
+            // 422 - Unprocessable Entity Faltan datos
+            $message = new Message(Response::HTTP_UNPROCESSABLE_ENTITY, Response::$statusTexts[422]);
+            return Utils::apiResponse(
+                $message->getCode(),
+                [ 'message' => $message ],
+                $format
+            );
+        }
+
+        // hay datos -> procesarlos
+        /** @var User $user */
+        $user = $this->entityManager
+            ->getRepository(User::class)
+            ->findOneBy([ 'id' => $postData['user_id'] ]);
+
+        if (null === $user) {    // 400 - Bad Request
+            $message = new Message(Response::HTTP_BAD_REQUEST, Response::$statusTexts[400]);
+            return Utils::apiResponse(
+                $message->getCode(),
+                [ 'message' => $message ],
+                $format
+            );
+        }
+
+        // 201 - Created
+        $result = new Result(
+            $postData['result'],
+            $user,
+            $timestamp
+        );
+
+        $this->entityManager->persist($result);
+        $this->entityManager->flush();
+
+        return Utils::apiResponse(
+            Response::HTTP_CREATED,
+            [ 'result' => $result ],
+            $format
+        );
+    }
+
+    /**
+     * Summary: Updates a result
+     * Notes: Updates the result identified by &#x60;resultId&#x60;.
+     *
+     * @param Request $request request
+     * @param int $resultId Result id
+     * @return  Response
+     * @Route(
+     *     "/{resultId}.{_format}",
+     *     defaults={"_format": null},
+     *     requirements={
+     *          "resultId": "\d+",
+     *         "_format": "json|xml"
+     *     },
+     *     methods={ Request::METHOD_PUT },
+     *     name="put"
+     * )
+     *
+     * @Security(
+     *     expression="is_granted('IS_AUTHENTICATED_FULLY')",
+     *     statusCode=401,
+     *     message="Invalid credentials."
+     * )
+     * @throws Exception
+     */
+    public function putAction(Request $request, int $resultId): Response
+    {
+        $body = $request->getContent();
+        $postData = json_decode($body, true);
+        $format = Utils::getFormat($request);
+
+
+        /** @var Result $result */
+        $result = $this->entityManager
+            ->getRepository(Result::class)
+            ->findOneBy([ 'id' => $resultId ]);
+
+        if (null === $result) {    // 404 - Not Found
+            $message = new Message(Response::HTTP_NOT_FOUND, Response::$statusTexts[404]);
+            return Utils::apiResponse(
+                $message->getCode(),
+                [ 'message' => $message ],
+                $format
+            );
+        }
+
+        // Puede editar otro resultado diferente sólo si tiene ROLE_ADMIN
+        if (($this->getUser()->getId() !== $result->getUser()->getId())
+            && !$this->isGranted('ROLE_ADMIN')) {
+            throw new HttpException(   // 403
+                Response::HTTP_FORBIDDEN,
+                "`Forbidden`: you don't have permission to access"
+            );
+        }
+
+        // user_id
+        if (isset($postData['user_id'])) {
+            /** @var User $user */
+            $user = $this->entityManager
+                ->getRepository(User::class)
+                ->findOneBy([ 'id' => $postData['user_id'] ]);
+
+            if (null == $user) {    // 400 - Bad Request
+                $message = new Message(Response::HTTP_BAD_REQUEST, Response::$statusTexts[400]);
+                return Utils::apiResponse(
+                    $message->getCode(),
+                    [ 'message' => $message ],
+                    $format
+                );
+            }
+            $result->setUser($user);
+        }
+
+        // result
+        if (isset($postData['result'])) {
+            $result->setResult($postData['result']);
+        }
+
+        //time
+        $timestamp = new DateTime('now');
+        $result->setTime($timestamp);
+
+        $this->entityManager->flush();
+
+        return Utils::apiResponse(
+            209,                        // 209 - Content Returned
+            [ 'result' => $result ],
+            $format
+        );
     }
 }
