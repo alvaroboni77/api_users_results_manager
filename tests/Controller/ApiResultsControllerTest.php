@@ -1,5 +1,6 @@
 <?php
 
+
 namespace App\Tests\Controller;
 
 use Faker\Factory as FakerFactoryAlias;
@@ -11,14 +12,14 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * @package App\Tests\Controller
  *
- * @coversDefaultClass \App\Controller\ApiUsersController
+ * @coversDefaultClass \App\Controller\ApiResultsController
  */
-class ApiUsersControllerTest extends BaseTestCase
+class ApiResultsControllerTest extends BaseTestCase
 {
-    private const RUTA_API = '/api/v1/users';
+    private const RUTA_API = '/api/v1/results';
 
     /**
-     * Test OPTIONS /users[/userId] 200 Ok
+     * Test OPTIONS /results[/resultId] 200 Ok
      *
      * @return void
      * @covers ::optionsAction()
@@ -44,50 +45,17 @@ class ApiUsersControllerTest extends BaseTestCase
     }
 
     /**
-     * Test GET /users 404 Not Found
+     * Test POST /results 201 Created
      *
-     * @return void
-     * @covers ::cgetAction
-     */
-//    public function testCGetAction404(): void
-//    {
-//        $headers = [];
-//        self::$client->request(
-//            Request::METHOD_GET,
-//            self::RUTA_API,
-//            [],
-//            [],
-//            $headers
-//        );
-//        $response = self::$client->getResponse();
-//
-//        self::assertEquals(
-//            Response::HTTP_NOT_FOUND,
-//            $response->getStatusCode()
-//        );
-//        $r_body = (string) $response->getContent();
-//        self::assertContains('code', $r_body);
-//        self::assertContains('message', $r_body);
-//        $r_data = json_decode($r_body, true);
-//        self::assertEquals(Response::HTTP_NOT_FOUND, $r_data['message']['code']);
-//        self::assertEquals(Response::$statusTexts[404], $r_data['message']['message']);
-//    }
-
-    /**
-     * Test POST /users 201 Created
-     *
-     * @return array user data
+     * @return array result data
      * @covers ::postAction()
      */
-    public function testPostUserAction201(): array
+    public function testPostResultAction201(): array
     {
-        $role = self::$faker->word;
         $p_data = [
-            'email' => self::$faker->email,
-            'password' => self::$faker->password,
-            'roles' => [ $role ]
+            'result' => self::$faker->randomDigitNotNull,
+            'user_id' => 1
         ];
-
         // 201
         $headers = $this->getTokenHeaders();
         self::$client->request(
@@ -99,27 +67,23 @@ class ApiUsersControllerTest extends BaseTestCase
             json_encode($p_data)
         );
         $response = self::$client->getResponse();
-
         self::assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
         self::assertTrue($response->isSuccessful());
         self::assertJson($response->getContent());
-        $user = json_decode($response->getContent(), true);
-        self::assertNotEmpty($user['user']['id']);
-        self::assertEquals($p_data['email'], $user['user']['email']);
-        self::assertContains(
-            $role,
-            $user['user']['roles']
-        );
+        $result = json_decode($response->getContent(), true);
+        self::assertNotEmpty($result['result']['id']);
+        self::assertEquals($p_data['result'], $result['result']['result']);
+        self::assertEquals($p_data['user_id'], $result['result']['user']['id']);
 
-        return $user['user'];
+        return $result['result'];
     }
 
     /**
-     * Test GET /users 200 Ok
+     * Test GET /results 200 Ok
      *
      * @return void
      * @covers ::cgetAction()
-     * @depends testPostUserAction201
+     * @depends testPostResultAction201
      */
     public function testCGetAction200(): void
     {
@@ -128,18 +92,18 @@ class ApiUsersControllerTest extends BaseTestCase
         $response = self::$client->getResponse();
         self::assertTrue($response->isSuccessful());
         self::assertJson($response->getContent());
-        $users = json_decode($response->getContent(), true);
-        self::assertArrayHasKey('users', $users);
+        $results = json_decode($response->getContent(), true);
+        self::assertArrayHasKey('results', $results);
     }
 
     /**
-     * Test GET /users 200 Ok (XML)
+     * Test GET /results 200 Ok (XML)
      *
      * @return void
      * @covers ::cgetAction()
      * @covers \App\Controller\Utils::getFormat()
      * @covers \App\Controller\Utils::apiResponse()
-     * @depends testPostUserAction201
+     * @depends testPostResultAction201
      */
     public function testCGetAction200XML(): void
     {
@@ -158,19 +122,19 @@ class ApiUsersControllerTest extends BaseTestCase
     }
 
     /**
-     * Test GET /users/{userId} 200 Ok
+     * Test GET /result/{resultId} 200 Ok
      *
-     * @param   array $user user returned by testPostUserAction201sd()
+     * @param   array $result result returned by testPostResultAction201sd()
      * @return  void
      * @covers  ::getAction()
-     * @depends testPostUserAction201
+     * @depends testPostResultAction201
      */
-    public function testGetUserAction200(array $user): void
+    public function testGetResultAction200(array $result): void
     {
         $headers = $this->getTokenHeaders();
         self::$client->request(
             Request::METHOD_GET,
-            self::RUTA_API . '/' . $user['id'],
+            self::RUTA_API . '/' . $result['id'],
             [],
             [],
             $headers
@@ -179,25 +143,25 @@ class ApiUsersControllerTest extends BaseTestCase
 
         self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
         self::assertJson((string) $response->getContent());
-        $user_aux = json_decode((string) $response->getContent(), true);
-        self::assertEquals($user['id'], $user_aux['user']['id']);
+        $result_aux = json_decode((string) $response->getContent(), true);
+        self::assertEquals($result['id'], $result_aux['result']['user']['id']);
     }
 
     /**
-     * Test POST /users 400 Bad Request
+     * Test POST /results 400 Bad Request
      *
-     * @param   array $user user returned by testPostUserAction201()
+     * @param   array $result result returned by testPostResultAction201()
      * @return  void
      * @covers  ::postAction()
-     * @depends testPostUserAction201
+     * @depends testPostResultAction201
      */
-    public function testPostUserAction400(array $user): void
+    public function testPostResultAction400(array $result): void
     {
         $headers = $this->getTokenHeaders();
 
         $p_data = [
-            'email' => $user['email'], // mismo e-mail
-            'password' => self::$faker->password
+            'result' => $result['result'],
+            'user_id' => 3
         ];
         self::$client->request(
             Request::METHOD_POST,
@@ -223,26 +187,24 @@ class ApiUsersControllerTest extends BaseTestCase
     }
 
     /**
-     * Test PUT /users/{userId} 209 Content Returned
+     * Test PUT /results/{resultId} 209 Content Returned
      *
-     * @param   array $user user returned by testPostUserAction201()
-     * @return  array modified user data
+     * @param   array $result result returned by testPostResultAction201()
+     * @return  array modified result data
      * @covers  ::putAction()
-     * @depends testPostUserAction201
+     * @depends testPostResultAction201
      */
-    public function testPutUserAction209(array $user): array
+    public function testPutResultAction209(array $result): array
     {
         $headers = $this->getTokenHeaders();
-        $role = self::$faker->word;
         $p_data = [
-            'email' => self::$faker->email,
-            'password' => self::$faker->password,
-            'roles' => [ $role ],
+            'result' => self::$faker->randomDigitNotNull,
+            'user_id' => 2
         ];
 
         self::$client->request(
             Request::METHOD_PUT,
-            self::RUTA_API . '/' . $user['id'],
+            self::RUTA_API . '/' . $result['id'],
             [],
             [],
             $headers,
@@ -252,36 +214,31 @@ class ApiUsersControllerTest extends BaseTestCase
 
         self::assertEquals(209, $response->getStatusCode());
         self::assertJson((string) $response->getContent());
-        $user_aux = json_decode((string) $response->getContent(), true);
-        self::assertEquals($user['id'], $user_aux['user']['id']);
-        self::assertEquals($p_data['email'], $user_aux['user']['email']);
-        self::assertContains(
-            $role,
-            $user_aux['user']['roles']
-        );
+        $result_aux = json_decode((string) $response->getContent(), true);
+        self::assertEquals($result['id'], $result_aux['result']['id']);
+        self::assertEquals($p_data['result'], $result_aux['result']['result']);
 
-        return $user_aux['user'];
+        return $result_aux['result'];
     }
 
     /**
-     * Test PATCH /users/{userId} 209 Content Returned
+     * Test PATCH /results/{resultId} 209 Content Returned
      *
-     * @param   array $user user returned by testPostUserAction201()
-     * @return  array modified user data
+     * @param   array $result result returned by testPostResultAction201()
+     * @return  array modified result data
      * @covers  ::patchAction()
-     * @depends testPostUserAction201
+     * @depends testPostResultAction201
      */
-    public function testPatchUserAction209(array $user): array
+    public function testPatchResultAction209(array $result): array
     {
         $headers = $this->getTokenHeaders();
         $p_data = [
-            'email' => self::$faker->email,
-            'password' => self::$faker->password
+            'result' => self::$faker->randomDigitNotNull
         ];
 
         self::$client->request(
             Request::METHOD_PATCH,
-            self::RUTA_API . '/' . $user['id'],
+            self::RUTA_API . '/' . $result['id'],
             [],
             [],
             $headers,
@@ -291,35 +248,31 @@ class ApiUsersControllerTest extends BaseTestCase
 
         self::assertEquals(209, $response->getStatusCode());
         self::assertJson((string) $response->getContent());
-        $user_aux = json_decode((string) $response->getContent(), true);
-        self::assertEquals($user['id'], $user_aux['user']['id']);
-//        self::assertEquals($user['roles'], $user_aux['user']['roles']);
-        self::assertEquals($p_data['email'], $user_aux['user']['email']);
+        $result_aux = json_decode((string) $response->getContent(), true);
+        self::assertEquals($result['id'], $result_aux['result']['id']);
+        self::assertEquals($p_data['result'], $result_aux['result']['result']);
 
-        return $user_aux['user'];
+        return $result_aux['result'];
     }
 
     /**
-     * Test PUT /users/{userId} 400 Bad Request
+     * Test PUT /results/{resultId} 400 Bad Request
      *
-     * @param   array $user user returned by testPutUserAction209()
+     * @param   array $result result returned by testPutResultAction209()
      * @return  void
      * @covers  ::putAction()
-     * @depends testPutUserAction209
+     * @depends testPutResultAction209
      */
-    public function testPutUserAction400(array $user): void
+    public function testPutResultAction400(array $result): void
     {
         $headers = $this->getTokenHeaders();
-        $role = self::$faker->word;
-        // e-mail already exists
         $p_data = [
-            'email' => $user['email'],
-            'password' => self::$faker->password,
-            'roles' => [ $role ]
+            'result' => self::$faker->randomDigitNotNull,
+            'user_id' => 3
         ];
         self::$client->request(
             Request::METHOD_PUT,
-            self::RUTA_API . '/' . $user['id'],
+            self::RUTA_API . '/' . $result['id'],
             [],
             [],
             $headers,
@@ -347,23 +300,22 @@ class ApiUsersControllerTest extends BaseTestCase
     }
 
     /**
-     * Test PATCH /users/{userId} 400 Bad Request
+     * Test PATCH /results/{resultId} 400 Bad Request
      *
-     * @param   array $user user returned by testPatchUserAction209()
+     * @param   array $result result returned by testPatchResultAction209()
      * @return  void
      * @covers  ::patchAction()
-     * @depends testPatchUserAction209
+     * @depends testPatchResultAction209
      */
-    public function testPatchUserAction400(array $user): void
+    public function testPatchResultAction400(array $result): void
     {
         $headers = $this->getTokenHeaders();
-        // e-mail already exists
         $p_data = [
-            'email' => $user['email']
+            'user_id' => 3
         ];
         self::$client->request(
             Request::METHOD_PATCH,
-            self::RUTA_API . '/' . $user['id'],
+            self::RUTA_API . '/' . $result['id'],
             [],
             [],
             $headers,
@@ -391,22 +343,22 @@ class ApiUsersControllerTest extends BaseTestCase
     }
 
     /**
-     * Test DELETE /users/{userId} 204 No Content
+     * Test DELETE /results/{resultId} 204 No Content
      *
-     * @param   array $user user returned by testPostUserAction201()
-     * @return  int userId
+     * @param   array $result result returned by testPostResultAction201()
+     * @return  int resultId
      * @covers  ::deleteAction()
-     * @depends testPostUserAction201
-     * @depends testPostUserAction400
-     * @depends testGetUserAction200
-     * @depends testPutUserAction400
+     * @depends testPostResultAction201
+     * @depends testPostResultAction400
+     * @depends testGetResultAction200
+     * @depends testPutResultAction400
      */
-    public function testDeleteUserAction204(array $user): int
+    public function testDeleteResultAction204(array $result): int
     {
         $headers = $this->getTokenHeaders();
         self::$client->request(
             Request::METHOD_DELETE,
-            self::RUTA_API . '/' . $user['id'],
+            self::RUTA_API . '/' . $result['id'],
             [],
             [],
             $headers
@@ -419,24 +371,24 @@ class ApiUsersControllerTest extends BaseTestCase
         );
         self::assertEmpty((string) $response->getContent());
 
-        return $user['id'];
+        return $result['id'];
     }
 
     /**
-     * Test POST /users 422 Unprocessable Entity
+     * Test POST /results 422 Unprocessable Entity
      *
      * @covers ::postAction()
-     * @param null|string $email
-     * @param null|string $password
-     * @dataProvider userProvider422
+     * @param null|string $result
+     * @param null|integer $user_id
+     * @dataProvider resultProvider422
      * @return void
      */
-    public function testPostUserAction422(?string $email, ?string $password): void
+    public function testPostResultAction422(?string $result, ?int $user_id): void
     {
         $headers = $this->getTokenHeaders();
         $p_data = [
-            'email' => $email,
-            'password' => $password
+            'result' => $result,
+            'user_id' => $user_id
         ];
 
         self::$client->request(
@@ -466,22 +418,20 @@ class ApiUsersControllerTest extends BaseTestCase
     }
 
     /**
-     * Test PUT /users 422 Unprocessable Entity
+     * Test PUT /results 422 Unprocessable Entity
      *
      * @covers ::postAction()
-     * @param null|string $email
-     * @param null|string $password
-     * @param null|string $role
-     * @dataProvider userProvider422Put
+     * @param null|string $result
+     * @param null|integer $user_id
+     * @dataProvider resultProvider422
      * @return void
      */
-    public function testPutUserAction422(?string $email, ?string $password, ?string $role): void
+    public function testPutUserAction422(?string $result, ?int $user_id): void
     {
         $headers = $this->getTokenHeaders();
         $p_data = [
-            'email' => $email,
-            'password' => $password,
-            'role' => $role
+            'result' => $result,
+            'user_id' => $user_id
         ];
 
         self::$client->request(
@@ -511,12 +461,12 @@ class ApiUsersControllerTest extends BaseTestCase
     }
 
     /**
-     * Test GET    /users 401 UNAUTHORIZED
-     * Test POST   /users 401 UNAUTHORIZED
-     * Test GET    /users/{userId} 401 UNAUTHORIZED
-     * Test PUT    /users/{userId} 401 UNAUTHORIZED
-     * Test PATCH  /users/{userId} 401 UNAUTHORIZED
-     * Test DELETE /users/{userId} 401 UNAUTHORIZED
+     * Test GET    /results 401 UNAUTHORIZED
+     * Test POST   /results 401 UNAUTHORIZED
+     * Test GET    /results/{resultId} 401 UNAUTHORIZED
+     * Test PUT    /results/{resultId} 401 UNAUTHORIZED
+     * Test PATCH  /results/{resultId} 401 UNAUTHORIZED
+     * Test DELETE /results/{resultId} 401 UNAUTHORIZED
      *
      * @param string $method
      * @param string $uri
@@ -530,7 +480,7 @@ class ApiUsersControllerTest extends BaseTestCase
      * @covers ::deleteAction()
      * @covers \App\EventListener\ExceptionListener::onKernelException()
      */
-    public function testUserStatus401(string $method, string $uri): void
+    public function testResultStatus401(string $method, string $uri): void
     {
         self::$client->request(
             $method,
@@ -555,22 +505,22 @@ class ApiUsersControllerTest extends BaseTestCase
     }
 
     /**
-     * Test GET    /users/{userId} 404 NOT FOUND
-     * Test PUT    /users/{userId} 404 NOT FOUND
-     * Test PATCH  /users/{userId} 404 NOT FOUND
-     * Test DELETE /users/{userId} 404 NOT FOUND
+     * Test GET    /results/{resultId} 404 NOT FOUND
+     * Test PUT    /results/{resultId} 404 NOT FOUND
+     * Test PATCH  /results/{resultId} 404 NOT FOUND
+     * Test DELETE /results/{resultId} 404 NOT FOUND
      *
      * @param string $method
-     * @param int $userId user id. returned by testDeleteUserAction204()
+     * @param int $resultId result id. returned by testDeleteResultAction204()
      * @dataProvider routeProvider404
      * @return void
      * @covers ::getAction()
      * @covers ::putAction()
      * @covers ::patchAction()
      * @covers ::deleteAction()
-     * @depends testDeleteUserAction204
+     * @depends testDeleteResultAction204
      */
-    public function testUserStatus404(string $method, int $userId): void
+    public function testResultStatus404(string $method, int $resultId): void
     {
         $headers = $this->getTokenHeaders(
             self::$role_admin['email'],
@@ -578,7 +528,7 @@ class ApiUsersControllerTest extends BaseTestCase
         );
         self::$client->request(
             $method,
-            self::RUTA_API . '/' . $userId,
+            self::RUTA_API . '/' . $resultId,
             [],
             [],
             $headers
@@ -594,10 +544,10 @@ class ApiUsersControllerTest extends BaseTestCase
         self::assertSame(Response::$statusTexts[404], $r_data['message']['message']);
     }
     /**
-     * Test POST   /users 403 FORBIDDEN
-     * Test PUT    /users/{userId} 403 FORBIDDEN
-     * Test PATCH  /users/{userId} 403 FORBIDDEN
-     * Test DELETE /users/{userId} 403 FORBIDDEN
+     * Test POST   /results 403 FORBIDDEN
+     * Test PUT    /results/{resultId} 403 FORBIDDEN
+     * Test PATCH  /results/{resultId} 403 FORBIDDEN
+     * Test DELETE /results/{resultId} 403 FORBIDDEN
      *
      * @param string $method
      * @param string $uri
@@ -609,7 +559,7 @@ class ApiUsersControllerTest extends BaseTestCase
      * @covers ::deleteAction()
      * @covers \App\EventListener\ExceptionListener::onKernelException()
      */
-    public function testUserStatus403(string $method, string $uri): void
+    public function testResultStatus403(string $method, string $uri): void
     {
         $headers = $this->getTokenHeaders(
             self::$role_user['email'],
@@ -638,39 +588,20 @@ class ApiUsersControllerTest extends BaseTestCase
      */
 
     /**
-     * User provider (incomplete) -> 422 status code
+     * Result provider (incomplete) -> 422 status code
      *
-     * @return array user data
+     * @return array result data
      */
-    public function userProvider422(): array
+    public function resultProvider422(): array
     {
         $faker = FakerFactoryAlias::create('es_ES');
-        $email = $faker->email;
-        $password = $faker->password;
+        $result = $faker->randomDigitNotNull;
+        $user_id = 1;
 
         return [
-            'nulo_01' => [ null,   $password ],
-            'nulo_02' => [ $email, null      ],
+            'nulo_01' => [ null,   $result ],
+            'nulo_02' => [ $user_id, null      ],
             'nulo_03' => [ null,   null      ],
-        ];
-    }
-
-    /**
-     * User provider (incomplete) -> 422 status code
-     *
-     * @return array user data
-     */
-    public function userProvider422Put(): array
-    {
-        $faker = FakerFactoryAlias::create('es_ES');
-        $email = $faker->email;
-        $password = $faker->password;
-        $role = $faker->word;
-
-        return [
-            'nulo_01' => [ null,   $password,   null ],
-            'nulo_02' => [ $email, null     ,   null ],
-            'nulo_03' => [ null,   null     ,   $role],
         ];
     }
 

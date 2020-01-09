@@ -272,7 +272,7 @@ class ApiResultsController  extends AbstractController
             ->findOneBy([ 'id' => $postData['user_id'] ]);
 
         if (null === $user) {    // 400 - Bad Request
-            $message = new Message(Response::HTTP_BAD_REQUEST, Response::$statusTexts[400] . ': user does not exist');
+            $message = new Message(Response::HTTP_BAD_REQUEST, Response::$statusTexts[400] );
             return Utils::apiResponse(
                 $message->getCode(),
                 [ 'message' => $message ],

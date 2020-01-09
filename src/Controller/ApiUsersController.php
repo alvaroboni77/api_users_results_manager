@@ -279,9 +279,8 @@ class ApiUsersController extends AbstractController
             $postData['password']
         );
         // roles
-        if (isset($postData['roles'])) {
-            $user->setRoles($postData['roles']);
-        }
+        $user->setRoles($postData['roles']);
+
 
         $this->entityManager->persist($user);
         $this->entityManager->flush();
